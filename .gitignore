@@ -1,0 +1,10 @@
+pip/
+media/
+*.session
+*.session-journal
+*.db
+*.html
+!template.html
+*.csv
+.DS_Store
+.env

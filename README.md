@@ -38,7 +38,7 @@ TelegramBackup is a comprehensive tool designed for extracting, organizing, and 
 
 3. **Install the required dependencies**:
     ```bash
-    pip install -r requirements.txt
+    pip install -r requirements.txt --cache-dir pip
     ```
     
     If the requirements.txt file is missing, install these packages:
@@ -106,6 +106,7 @@ Before using TelegramBackup, you need to obtain your own Telegram API credential
    - **[S] Exit**: Exit the program
 
 5. **When processing entities**:
+   - Specify the number in the list, not the ID, to reference the entity.
    - You can specify how many messages to retrieve (leave blank for all)
    - Choose whether to download all media files (Y/N)
    - For large chats, consider processing in batches to avoid timeouts

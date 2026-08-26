@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import time
@@ -13,11 +14,13 @@ from telethon.tl.types import User, Channel, Chat, ChannelForbidden, MessageMedi
 from jinja2 import Environment, FileSystemLoader
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from telethon.tl.functions.contacts import GetContactsRequest
+from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
-api_id = 12345678
-api_hash = "abcdef1234567890abcdef1234567890"
+load_dotenv()
+api_id = os.getenv("API_ID")
+api_hash = os.getenv("API_HASH")
 
 def get_url_from_forwarded(forwarded):
     if forwarded is None:
@@ -132,6 +135,14 @@ async def close_current_session(client):
             pass
         return False
 
+async def disconnect_current_session(client):
+    print("Disconnecting current session (keeping login saved)...")
+    try:
+        await client.disconnect()
+        print("Session disconnected successfully. Login state is preserved for future runs.")
+    except Exception as e:
+        print(f"Error disconnecting session: {str(e)}")
+
 async def delete_telegram_service_messages(client):
     print("Attempting to delete recent Telegram service messages...")
     try:
@@ -168,8 +179,9 @@ async def delete_telegram_service_messages(client):
         
     await asyncio.sleep(1)
 
-async def main():
-    phone_number = input("Enter your phone number: ")
+async def main(phone_number=None):
+    if not phone_number:
+        phone_number = input("Enter your phone number: ")
     client = TelegramClient(phone_number, api_id, api_hash, receive_updates=False)
     
     await client.start(phone=phone_number)
@@ -262,22 +274,22 @@ async def main():
                 print("Program terminated due to session closure.")
                 return
         elif choice == 's':
-            print("\nAutomatically closing session before exiting...")
-            await close_current_session(client)
+            print("\nDisconnecting session before exiting...")
+            await disconnect_current_session(client)
             break
 
         if choice != 's':
             continue_processing = input("\nDo you want to perform another operation? (Y/N): ").lower()
             if continue_processing != 'y':
-                print("\nAutomatically closing session before exiting...")
-                await close_current_session(client)
+                print("\nDisconnecting session before exiting...")
+                await disconnect_current_session(client)
                 break
 
     print("Program terminated. Thank you for using the Telegram extractor!")
     
     if client.is_connected():
-        print("Closing session before exiting...")
-        await close_current_session(client)
+        print("Disconnecting session before exiting...")
+        await disconnect_current_session(client)
 
 async def media_exists(cursor, entity_id, message_id, media_type):
     cursor.execute("SELECT media_file FROM messages WHERE id = ? AND entity_id = ? AND media_type = ?", 
@@ -1022,4 +1034,12 @@ def generate_html(db_name, chat_name, entity_id=None):
     print(f"HTML file generated: {chat_name}.html")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Telegram backup script")
+    parser.add_argument(
+        "-p", "--phone-number",
+        dest="phone_number",
+        help="Phone number used for the Telegram session (will reuse the corresponding session file)",
+        default=None,
+    )
+    args = parser.parse_args()
+    asyncio.run(main(args.phone_number))
